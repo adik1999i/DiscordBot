@@ -4,8 +4,8 @@ import requests
 import os
 import asyncio
 import io
-from dotenv import load_dotenv
 from flask import Flask
+from dotenv import load_dotenv
 
 load_dotenv()
 # Load secrets from environment variables
@@ -30,8 +30,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 discord_client = discord.Client(intents=intents)
 
-# Updated function to handle files in memory
-async def fetch_images_from_user(username, count=10, discord_channel=None):
+async def fetch_images_from_user(username, count=5, discord_channel=None):
     try:
         # Get user details
         user = client.get_user(username=username)
@@ -40,7 +39,8 @@ async def fetch_images_from_user(username, count=10, discord_channel=None):
             return
             
         user_id = user.data.id
-        
+        print(f"Found user ID: {user_id}")
+
         # Fetch recent tweets
         tweets = client.get_users_tweets(
             id=user_id,
@@ -54,6 +54,8 @@ async def fetch_images_from_user(username, count=10, discord_channel=None):
             await discord_channel.send(f"No tweets found for user @{username}")
             return
 
+        print(f"Found {len(tweets.data)} tweets")
+        
         media_mapping = {}
         if tweets.includes and "media" in tweets.includes:
             media_mapping = {media["media_key"]: media for media in tweets.includes["media"]}
@@ -62,49 +64,46 @@ async def fetch_images_from_user(username, count=10, discord_channel=None):
 
         # Process each tweet
         for tweet in tweets.data:
-            try:
-                # Check if tweet contains the hashtag #DBLegends
-                if "#DBLegends" in tweet.text:
-                    print(f"Found tweet with #DBLegends: {tweet.text}")
-                    
-                    # Send the tweet text directly to Discord
-                    await discord_channel.send(f"Tweet from @{username}:\n{tweet.text}")
+            # Check if tweet contains the hashtag #DBLegends
+            if "#DBLegends" in tweet.text:
+                print(f"Found tweet with #DBLegends: {tweet.text}")
 
-                    # If tweet has images
-                    if hasattr(tweet, 'attachments') and tweet.attachments and "media_keys" in tweet.attachments:
-                        for media_key in tweet.attachments["media_keys"]:
-                            media = media_mapping.get(media_key)
-                            if media and media["type"] == "photo":
-                                image_url = media["url"]
-                                print(f"Downloading image: {image_url}")
+                # Send the tweet text directly to Discord
+                await discord_channel.send(f"Tweet Content:\n{tweet.text}")
 
-                                # Download image
-                                response = requests.get(image_url)
-                                if response.status_code == 200:
-                                    # Create file-like object in memory
-                                    image_data = io.BytesIO(response.content)
-                                    # Send directly to Discord
-                                    discord_file = discord.File(
-                                        fp=image_data,
-                                        filename=f"{username}_{tweet.id}_{image_count}.jpg"
-                                    )
-                                    await discord_channel.send(file=discord_file)
-                                    image_count += 1
+                # If tweet has images
+                if hasattr(tweet, 'attachments') and tweet.attachments and "media_keys" in tweet.attachments:
+                    for media_key in tweet.attachments["media_keys"]:
+                        media = media_mapping.get(media_key)
+                        if media and media["type"] == "photo":
+                            image_url = media["url"]
+                            print(f"Downloading image: {image_url}")
 
-                    await asyncio.sleep(1)  # Add small delay between processing tweets
-                    
-            except Exception as tweet_error:
-                print(f"Error processing tweet: {tweet_error}")
-                continue
+                            # Download and send image directly to Discord
+                            response = requests.get(image_url)
+                            if response.status_code == 200:
+                                image_data = io.BytesIO(response.content)
+                                discord_file = discord.File(
+                                    fp=image_data,
+                                    filename=f"{username}_{tweet.id}_{image_count}.jpg"
+                                )
+                                await discord_channel.send(file=discord_file)
+                                image_count += 1
+                                print(f"Sent image {image_count} to Discord")
 
+                await asyncio.sleep(1)  # Small delay between tweets
+
+        print(f"Processed {image_count} images for tweets with #DBLegends")
         await discord_channel.send(f"Found and processed {image_count} images from tweets with #DBLegends.")
 
     except tweepy.TooManyRequests:
         await discord_channel.send("Rate limit exceeded. Please try again later.")
+        print("Rate limit exceeded")
         
     except Exception as e:
-        print(f"Error: {e}")
-        await discord_channel.send(f"An error occurred while fetching tweets: {str(e)}")
+        error_message = f"Error: {str(e)}"
+        print(error_message)
+        await discord_channel.send(error_message)
 
 @discord_client.event
 async def on_ready():
@@ -123,7 +122,7 @@ async def on_message(message):
         except Exception as e:
             await message.channel.send(f"An error occurred: {str(e)}")
 
-# Add Flask routes to keep the service alive
+# Add Flask routes
 @app.route('/')
 def home():
     return 'Discord Bot is running!'
