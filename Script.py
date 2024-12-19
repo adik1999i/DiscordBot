@@ -4,16 +4,16 @@ import requests
 import os
 import time
 import asyncio
+from dotenv import load_dotenv
 
-# Discord Bot Token
-DISCORD_TOKEN = 'MTMxMTIzODE2NjY1NjcxMjcyNQ.GQzr4k.mMdUcTUmgnTiLD7DQLjOkb5KxA2mBEHSXas9OQ'
-
-# Replace with your Twitter API credentials
-API_KEY = "JjAzcqm1mMJV2kdrgorJhCwtb"
-API_SECRET = "gXRLIRBPED3e7ONApiHNrMmea36Bixsb4vMkz2q1oqBTVvqF3m"
-ACCESS_TOKEN = "1461713880711716872-ngF43CEXSTPVvjNQTIPSEIpL5auKiZ"
-ACCESS_TOKEN_SECRET = "GGnB3lJOg2KiI7htPYolUBfajjx9eAzogU5cISGz79z7U"
-BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAADGGxgEAAAAAWwXZV9y2sevn%2BWlZZR%2FF1qbOXKg%3D6ydfz929thJn4A8rRN8z59cXtdMahz1d2Ynk3CAVSl9hSS3xlX"
+load_dotenv()
+# Load secrets from environment variables
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")  # Discord Bot Token
+API_KEY = os.getenv("TWITTER_API_KEY")  # Twitter API Key
+API_SECRET = os.getenv("TWITTER_API_SECRET")  # Twitter API Secret
+ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")  # Twitter Access Token
+ACCESS_TOKEN_SECRET = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")  # Twitter Access Token Secret
+BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")  # Twitter Bearer Token
 
 # Authenticate with Tweepy
 auth = tweepy.OAuth1UserHandler(API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
